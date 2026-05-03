@@ -86,7 +86,7 @@ class LifeSpark:
 class Game:
     def __init__(self):
         kn.init()
-        kn.window.create("Wither's Wake", kn.Vec2(WIDTH, HEIGHT))
+        kn.window.create("Wither's Wake", WIDTH, HEIGHT)
         
         # Load Assets
         try:
@@ -96,8 +96,8 @@ class Game:
             self.atlas = None
             
         self.world = kn.physics.World(GRAVITY)
-        self.camera = kn.Camera(kn.Vec2(WIDTH//2, HEIGHT//2))
-        self.camera.set()
+        self.camera = kn.Camera(set_active=True)
+        self.camera.transform.pos = kn.Vec2(WIDTH//2, HEIGHT//2)
         
         # Player
         self.player = kn.physics.CharacterBody(self.world)
@@ -140,7 +140,7 @@ class Game:
             
             self.draw()
             
-            if (self.game_over or self.won) and kn.input.key.is_pressed(kn.key.R):
+            if (self.game_over or self.won) and kn.key.is_pressed(kn.K_r):
                 self.reset()
                 
         kn.quit()
@@ -159,8 +159,8 @@ class Game:
 
     def handle_input(self, dt):
         move_dir = 0
-        if kn.input.key.is_down(kn.key.A): move_dir -= 1
-        if kn.input.key.is_down(kn.key.D): move_dir += 1
+        if kn.key.is_pressed(kn.K_a): move_dir -= 1
+        if kn.key.is_pressed(kn.K_d): move_dir += 1
             
         if move_dir != 0:
             self.player.velocity.x += move_dir * self.player.acceleration * dt
@@ -175,17 +175,17 @@ class Game:
         if abs(self.player.velocity.x) > self.player.max_speed:
             self.player.velocity.x = math.copysign(self.player.max_speed, self.player.velocity.x)
             
-        if self.player.on_floor:
-            if kn.input.key.is_pressed(kn.key.SPACE):
+        if self.player.is_on_floor:
+            if kn.key.is_just_pressed(kn.K_SPACE):
                 self.player.velocity.y = JUMP_FORCE
             if self.player.velocity.y > 0:
                 self.player.velocity.y = 0
         else:
             self.player.velocity.y += GRAVITY.y * dt
             
-        if kn.input.mouse.is_just_pressed(kn.MOUSE_LEFT):
+        if kn.mouse.is_just_pressed(kn.M_LEFT):
             if self.essence >= BLOOM_COST:
-                mouse_screen = kn.input.mouse.get_pos()
+                mouse_screen = kn.mouse.get_pos()
                 mouse_world = self.camera.screen_to_world(mouse_screen)
                 
                 if (self.player.pos - mouse_world).length < 400:
@@ -195,7 +195,7 @@ class Game:
 
     def update(self, dt):
         self.player.move_and_slide(dt)
-        self.camera.pos.x = max(WIDTH//2, self.player.pos.x)
+        self.camera.transform.pos.x = max(WIDTH//2, self.player.pos.x)
         
         for plat in self.platforms[:]:
             if plat.update(dt):
@@ -216,7 +216,7 @@ class Game:
         
         # Parallax BG
         for i in range(1, 4):
-            scroll_x = self.camera.pos.x * (0.05 * i)
+            scroll_x = self.camera.transform.pos.x * (0.05 * i)
             color = kn.Color(20 * i, 20 * i, 20 * i)
             for j in range(-2, 10):
                 kn.draw.rect(kn.Rect((j * 400) - (scroll_x % 400), 100 + i * 50, 100, 600), color)
