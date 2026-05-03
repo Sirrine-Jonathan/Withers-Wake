@@ -6,7 +6,7 @@
     <title>Wither's Wake - A PyKraken Game</title>
     <style>
         body {
-            background-color: #121212;
+            background-color: #0a0a0a;
             color: #00ff88;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
@@ -16,32 +16,93 @@
             height: 100vh;
             margin: 0;
             text-align: center;
+            overflow: hidden;
+            position: relative;
         }
-        h1 { font-size: 3rem; margin-bottom: 0.5rem; }
-        p { color: #ccc; font-size: 1.2rem; max-width: 600px; line-height: 1.6; }
+        /* Gothic Background Effect */
+        body::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: 
+                radial-gradient(circle at 50% 50%, rgba(0, 255, 136, 0.05) 0%, transparent 70%),
+                linear-gradient(to bottom, #0a0a0a 0%, #1a1a1a 100%);
+            z-index: -2;
+        }
+        /* Animated Spirit Orbs */
+        .orb {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(0, 255, 136, 0.2) 0%, transparent 70%);
+            border-radius: 50%;
+            z-index: -1;
+            animation: drift 20s infinite alternate ease-in-out;
+        }
+        @keyframes drift {
+            from { transform: translate(-20vw, -20vh) scale(1); }
+            to { transform: translate(20vw, 20vh) scale(1.5); }
+        }
+        
+        .container {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 3rem;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            backdrop-filter: blur(10px);
+            max-width: 800px;
+        }
+        
+        h1 { font-size: 4rem; margin-bottom: 0.5rem; text-shadow: 0 0 20px rgba(0, 255, 136, 0.5); }
+        p { color: #ccc; font-size: 1.3rem; max-width: 600px; line-height: 1.6; margin: 1.5rem auto; }
+        
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2.5rem;
+        }
+        
         .btn {
             background-color: #00ff88;
-            color: #121212;
-            padding: 1rem 2rem;
+            color: #0a0a0a;
+            padding: 1.2rem 2.5rem;
             text-decoration: none;
             font-weight: bold;
-            border-radius: 5px;
-            margin-top: 2rem;
-            transition: transform 0.2s;
+            border-radius: 8px;
+            transition: all 0.3s;
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.3);
         }
-        .btn:hover { transform: scale(1.05); }
-        .tech { color: #888; margin-top: 1rem; font-size: 0.9rem; }
+        .btn:hover { 
+            transform: translateY(-5px);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.6);
+        }
+        .btn-secondary {
+            background-color: transparent;
+            color: #00ff88;
+            border: 1px solid #00ff88;
+        }
+        
+        .tech { color: #555; margin-top: 2rem; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 2px; }
     </style>
 </head>
 <body>
-    <h1>Wither's Wake</h1>
-    <p>A gothic-style 2D platformer where the world is in a constant state of decay. Navigate crumbling ruins by blooming temporary platforms.</p>
-    
-    <a href="https://github.com/Sirrine-Jonathan/Withers-Wake" class="btn">View Source & Run Locally</a>
-    <a href="https://github.com/Sirrine-Jonathan/Withers-Wake/releases/download/v1.3.0/WithersWake_v1.3.0.zip" class="btn" style="background-color: #333; color: #00ff88; border: 1px solid #00ff88; margin-left: 10px;">Download v1.3.0 (.zip)</a>
-    
-    <div class="tech">
-        Built with Kraken Engine & Python
+    <div class="orb" style="top: 20%; left: 20%;"></div>
+    <div class="orb" style="top: 70%; left: 80%; animation-delay: -5s; width: 200px; height: 200px;"></div>
+    <div class="orb" style="top: 10%; left: 70%; animation-delay: -12s;"></div>
+
+    <div class="container">
+        <h1>Wither's Wake</h1>
+        <p>A gothic 2D platformer where the world is in a constant state of decay. Play as "The Bloom," an entity capable of manifesting temporary life to navigate through crumbling monochromatic ruins.</p>
+        
+        <div class="btn-group">
+            <a href="https://github.com/Sirrine-Jonathan/Withers-Wake/releases/download/v1.3.0/WithersWake_v1.3.0.zip" class="btn">Download v1.3.0 (.zip)</a>
+            <a href="https://github.com/Sirrine-Jonathan/Withers-Wake" class="btn btn-secondary">Source Code</a>
+        </div>
+        
+        <div class="tech">
+            Built with Kraken Engine & Python 3.14
+        </div>
     </div>
 </body>
 </html>

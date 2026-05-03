@@ -15,10 +15,10 @@ PLATFORM_LIFETIME = 5.0
 SPARK_RECOVERY = 35.0
 GOAL_X = 5000
 
-# Atlas Coordinates (Guessed)
-CHAR_RECT = kn.Rect(320, 140, 64, 80)
-PLAT_RECT = kn.Rect(64, 256, 128, 64)
-ORB_RECT = kn.Rect(760, 90, 64, 64)
+# Atlas Coordinates (Based on finding regions)
+CHAR_RECT = kn.Rect(591, 87, 81, 157)
+PLAT_RECT = kn.Rect(544, 597, 416, 427)
+ORB_RECT = kn.Rect(768, 86, 167, 163)
 
 class DecayingPlatform:
     def __init__(self, world, pos, size, atlas):
@@ -178,14 +178,18 @@ class Game:
         if abs(self.player.velocity.x) > self.player.max_speed:
             self.player.velocity.x = math.copysign(self.player.max_speed, self.player.velocity.x)
             
+        # Apply Gravity (Always)
+        self.player.velocity.y += GRAVITY.y * dt
+            
         if self.player.is_on_floor:
-            if kn.key.is_just_pressed(kn.K_SPACE):
-                self.player.velocity.y = JUMP_FORCE
+            # Reset vertical velocity if moving downwards into the floor
             if self.player.velocity.y > 0:
                 self.player.velocity.y = 0
-        else:
-            self.player.velocity.y += GRAVITY.y * dt
-            
+                
+            # Jump logic
+            if kn.key.is_just_pressed(kn.K_SPACE):
+                self.player.velocity.y = JUMP_FORCE
+        
         if kn.mouse.is_just_pressed(kn.M_LEFT):
             if self.essence >= BLOOM_COST:
                 mouse_screen = kn.mouse.get_pos()
