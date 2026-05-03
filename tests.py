@@ -132,6 +132,58 @@ def test_integration_bloom_mechanic():
             assert len(game.platforms) == 1
             assert game.essence < initial_essence
 
+def test_integration_player_movement_left():
+    with patch('pykraken.init'), patch('pykraken.window.create'), patch('pykraken.Camera'):
+        game = Game()
+        game.player.is_on_floor = True
+        # Simulate pressing 'A' (Move Left)
+        with patch('pykraken.key.is_pressed', side_effect=lambda k: k == kn.K_a):
+            game.tick(dt=0.1)
+            assert game.player.velocity.x < 0
+
+def test_friction_deceleration():
+    with patch('pykraken.init'), patch('pykraken.window.create'), patch('pykraken.Camera'):
+        game = Game()
+        game.player.velocity.x = 200.0 # Moving right
+        # No keys pressed
+        with patch('pykraken.key.is_pressed', return_value=False):
+            # Use a very small dt so it doesn't stop completely
+            game.tick(dt=0.01)
+            # Velocity should have decreased due to friction
+            assert game.player.velocity.x < 200.0
+            assert game.player.velocity.x > 0
+
+def test_gravity_accumulation():
+    with patch('pykraken.init'), patch('pykraken.window.create'), patch('pykraken.Camera'):
+        game = Game()
+        game.player.is_on_floor = False
+        game.player.velocity.y = 0.0
+        
+        # Multiple ticks
+        for _ in range(3):
+            game.tick(dt=0.1)
+        
+        # Velocity.y should be positive (falling)
+        assert game.player.velocity.y > 0
+
+def test_win_condition_trigger():
+    from main import GOAL_X
+    with patch('pykraken.init'), patch('pykraken.window.create'), patch('pykraken.Camera'):
+        game = Game()
+        # Move player to goal
+        game.player.pos = FakeVec2(GOAL_X + 10, 500)
+        game.update(0.1)
+        assert game.won == True
+
+def test_game_over_trigger():
+    from main import HEIGHT
+    with patch('pykraken.init'), patch('pykraken.window.create'), patch('pykraken.Camera'):
+        game = Game()
+        # Move player below the world
+        game.player.pos = FakeVec2(500, HEIGHT + 1000)
+        game.update(0.1)
+        assert game.game_over == True
+
 def test_e2e_gameplay_sequence():
     # Simulate: Move right -> Collect Spark -> Create Platform
     with patch('pykraken.init'), \
