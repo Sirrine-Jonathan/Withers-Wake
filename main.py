@@ -131,19 +131,22 @@ class Game:
 
     def run(self):
         while kn.window.is_open():
-            kn.event.poll()
-            dt = kn.time.get_delta()
-            
-            if not self.game_over and not self.won:
-                self.handle_input(dt)
-                self.update(dt)
-            
-            self.draw()
-            
-            if (self.game_over or self.won) and kn.key.is_pressed(kn.K_r):
-                self.reset()
-                
+            self.tick()
         kn.quit()
+
+    def tick(self, dt=None):
+        kn.event.poll()
+        if dt is None:
+            dt = kn.time.get_delta()
+        
+        if not self.game_over and not self.won:
+            self.handle_input(dt)
+            self.update(dt)
+        
+        self.draw()
+        
+        if (self.game_over or self.won) and kn.key.is_pressed(kn.K_r):
+            self.reset()
 
     def reset(self):
         self.player.pos = kn.Vec2(200, HEIGHT - 150)
