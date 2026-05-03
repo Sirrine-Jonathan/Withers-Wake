@@ -90,7 +90,7 @@ class Game:
         
         # Load Assets
         try:
-            self.atlas = kn.Texture("assets/atlas.webp")
+            self.atlas = kn.Texture("assets/atlas.png")
         except:
             print("Warning: Could not load atlas. Using shapes.")
             self.atlas = None
