@@ -86,7 +86,7 @@ class LifeSpark:
 class Game:
     def __init__(self):
         kn.init()
-        kn.window.create("Wither's Wake", WIDTH, HEIGHT)
+        kn.window.create("Wither's Wake", kn.Vec2(WIDTH, HEIGHT))
         
         # Load Assets
         try:
