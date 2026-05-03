@@ -4,18 +4,18 @@ import random
 
 # Constants
 WIDTH, HEIGHT = 1280, 720
-GRAVITY = kn.Vec2(0, 1400)
+GRAVITY = kn.Vec2(0, 1500)
 PLAYER_SPEED = 450
 PLAYER_ACCEL = 2600
 PLAYER_FRICTION = 2000
-JUMP_FORCE = -700
+JUMP_FORCE = -750
 MAX_ESSENCE = 100.0
 BLOOM_COST = 20.0
 PLATFORM_LIFETIME = 5.0
 SPARK_RECOVERY = 35.0
 GOAL_X = 5000
 
-# Atlas Coordinates (Based on finding regions)
+# Atlas Coordinates (Verified via script)
 CHAR_RECT = kn.Rect(591, 87, 81, 157)
 PLAT_RECT = kn.Rect(544, 597, 416, 427)
 ORB_RECT = kn.Rect(768, 86, 167, 163)
@@ -47,17 +47,13 @@ class DecayingPlatform:
         return False
 
     def draw(self, camera):
-        screen_pos = camera.world_to_screen(self.pos)
-        dest_rect = kn.Rect(screen_pos.x - self.size.x/2, screen_pos.y - self.size.y/2, self.size.x, self.size.y)
-        
+        # When camera is active, we draw in World Space
         if self.atlas:
             self.atlas.clip_area = PLAT_RECT
-            # We can't easily set color on texture in Kraken yet? 
-            # Usually it's kn.renderer.draw(texture, transform, color_mod)
-            # Let's check renderer.draw signature.
-            kn.renderer.draw(self.atlas, kn.Transform(pos=screen_pos, scale=kn.Vec2(self.size.x/PLAT_RECT.w, self.size.y/PLAT_RECT.h)))
+            scale = kn.Vec2(self.size.x/PLAT_RECT.w, self.size.y/PLAT_RECT.h)
+            kn.renderer.draw(self.atlas, kn.Transform(pos=self.pos, scale=scale))
         else:
-            kn.draw.rect(dest_rect, self.color)
+            kn.draw.rect(kn.Rect(self.pos.x - self.size.x/2, self.pos.y - self.size.y/2, self.size.x, self.size.y), self.color)
 
 class LifeSpark:
     def __init__(self, pos, atlas):
@@ -73,27 +69,24 @@ class LifeSpark:
     def draw(self, camera):
         if self.collected: return
         bob = math.sin(self.time) * 10
-        screen_pos = camera.world_to_screen(self.pos + kn.Vec2(0, bob))
+        world_pos = self.pos + kn.Vec2(0, bob)
         
         if self.atlas:
             self.atlas.clip_area = ORB_RECT
             scale = (self.radius * 2) / ORB_RECT.w
-            kn.renderer.draw(self.atlas, kn.Transform(pos=screen_pos, scale=kn.Vec2(scale)))
+            kn.renderer.draw(self.atlas, kn.Transform(pos=world_pos, scale=kn.Vec2(scale)))
         else:
-            kn.draw.circle(kn.Circle(screen_pos.x, screen_pos.y, self.radius + 5), kn.Color(0, 255, 136, 100))
-            kn.draw.circle(kn.Circle(screen_pos.x, screen_pos.y, self.radius), kn.Color("#00ff88"))
+            # We don't have a world-space circle draw in kn.draw that doesn't use camera?
+            # Actually kn.draw uses world space when camera is active.
+            kn.draw.circle(kn.Circle(world_pos.x, world_pos.y, self.radius), kn.Color("#00ff88"))
 
 class Game:
     def __init__(self):
         kn.init()
         kn.window.create("Wither's Wake", WIDTH, HEIGHT)
         
-        # Load Assets
-        try:
-            self.atlas = kn.Texture("assets/atlas.png")
-        except:
-            print("Warning: Could not load atlas. Using shapes.")
-            self.atlas = None
+        # Assets
+        self.atlas = kn.Texture("assets/atlas.png")
             
         self.world = kn.physics.World(GRAVITY)
         self.camera = kn.Camera(set_active=True)
@@ -102,7 +95,8 @@ class Game:
         # Player
         self.player = kn.physics.CharacterBody(self.world)
         self.player.pos = kn.Vec2(200, HEIGHT - 150)
-        self.player.capsule_shape = kn.Capsule(0, -25, 0, 25, 18)
+        # Tighter capsule for better platforming
+        self.player.capsule_shape = kn.Capsule(0, -20, 0, 20, 16)
         self.player.max_speed = PLAYER_SPEED
         self.player.acceleration = PLAYER_ACCEL
         self.player.friction = PLAYER_FRICTION
@@ -116,10 +110,12 @@ class Game:
         self.setup_level()
 
     def setup_level(self):
+        # Stable Start
         self.ground = kn.physics.StaticBody(self.world)
         self.ground.pos = kn.Vec2(400, HEIGHT - 20)
         self.ground.add_collider(kn.Rect(-500, -20, 1000, 40))
         
+        # Stable Goal
         self.goal_ground = kn.physics.StaticBody(self.world)
         self.goal_ground.pos = kn.Vec2(GOAL_X, HEIGHT - 20)
         self.goal_ground.add_collider(kn.Rect(-200, -20, 400, 40))
@@ -161,6 +157,7 @@ class Game:
         self.won = False
 
     def handle_input(self, dt):
+        # Horizontal
         move_dir = 0
         if kn.key.is_pressed(kn.K_a): move_dir -= 1
         if kn.key.is_pressed(kn.K_d): move_dir += 1
@@ -178,31 +175,33 @@ class Game:
         if abs(self.player.velocity.x) > self.player.max_speed:
             self.player.velocity.x = math.copysign(self.player.max_speed, self.player.velocity.x)
             
-        # Apply Gravity (Always)
+        # Vertical / Jump
         self.player.velocity.y += GRAVITY.y * dt
-            
+        
         if self.player.is_on_floor:
-            # Only reset downward velocity if we are actually touching the floor
+            # Landing / Grounded
             if self.player.velocity.y > 0:
                 self.player.velocity.y = 0
-                
-            # Jump logic: Only allow if on floor
+            
             if kn.key.is_just_pressed(kn.K_SPACE):
                 self.player.velocity.y = JUMP_FORCE
         
+        # Bloom Power
         if kn.mouse.is_just_pressed(kn.M_LEFT):
             if self.essence >= BLOOM_COST:
                 mouse_screen = kn.mouse.get_pos()
                 mouse_world = self.camera.screen_to_world(mouse_screen)
                 
-                if (self.player.pos - mouse_world).length < 400:
+                if self.player.pos.distance_to(mouse_world) < 400:
                     new_plat = DecayingPlatform(self.world, mouse_world, kn.Vec2(160, 40), self.atlas)
                     self.platforms.append(new_plat)
                     self.essence -= BLOOM_COST
 
     def update(self, dt):
         self.player.move_and_slide(dt)
-        self.camera.transform.pos.x = max(WIDTH//2, self.player.pos.x)
+        # Smooth camera following
+        target_x = max(WIDTH//2, self.player.pos.x)
+        self.camera.transform.pos.x = target_x
         
         for plat in self.platforms[:]:
             if plat.update(dt):
@@ -221,34 +220,37 @@ class Game:
     def draw(self):
         kn.renderer.clear(kn.Color("#0a0a0a"))
         
-        # Parallax BG
+        # 1. Parallax BG (Screen Space)
+        self.camera.unset()
         for i in range(1, 4):
             scroll_x = self.camera.transform.pos.x * (0.05 * i)
             color = kn.Color(20 * i, 20 * i, 20 * i)
             for j in range(-2, 10):
                 kn.draw.rect(kn.Rect((j * 400) - (scroll_x % 400), 100 + i * 50, 100, 600), color)
         
+        # 2. World Objects (World Space)
+        self.camera.set()
+        
         # Stable Grounds
         for g in [self.ground, self.goal_ground]:
-            g_s = self.camera.world_to_screen(g.pos)
-            # Use a slightly different color for stable ground
-            kn.draw.rect(kn.Rect(g_s.x - 500, g_s.y - 20, 1000, 40), kn.Color("#222"))
+            kn.draw.rect(kn.Rect(g.pos.x - 500, g.pos.y - 20, 1000, 40), kn.Color("#222"))
         
         # Goal Marker
-        goal_s = self.camera.world_to_screen(kn.Vec2(GOAL_X, HEIGHT - 100))
-        kn.draw.rect(kn.Rect(goal_s.x - 20, goal_s.y - 60, 40, 120), kn.Color("#00ff88"))
+        kn.draw.rect(kn.Rect(GOAL_X - 20, HEIGHT - 160, 40, 120), kn.Color("#00ff88"))
 
         for plat in self.platforms: plat.draw(self.camera)
         for spark in self.sparks: spark.draw(self.camera)
             
         # Draw Player
-        p_s = self.camera.world_to_screen(self.player.pos)
         if self.atlas:
             self.atlas.clip_area = CHAR_RECT
-            kn.renderer.draw(self.atlas, kn.Transform(pos=p_s, scale=kn.Vec2(1.0)))
+            # Draw at world position!
+            kn.renderer.draw(self.atlas, kn.Transform(pos=self.player.pos))
         else:
-            kn.draw.rect(kn.Rect(p_s.x - 18, p_s.y - 30, 36, 60), kn.Color("#00ff88"))
+            kn.draw.rect(kn.Rect(self.player.pos.x - 18, self.player.pos.y - 30, 36, 60), kn.Color("#00ff88"))
         
+        # 3. UI (Screen Space)
+        self.camera.unset()
         self.draw_ui()
         if self.won: self.draw_overlay("THE WORLD BLOOMS AGAIN")
         elif self.game_over: self.draw_overlay("WITHERED AWAY")
@@ -262,8 +264,6 @@ class Game:
         
     def draw_overlay(self, text):
         kn.draw.rect(kn.Rect(WIDTH//2 - 300, HEIGHT//2 - 50, 600, 100), kn.Color(0, 0, 0, 200))
-        # We'll just draw a box, without text it's hard but the message is clear from the game state.
-        pass
 
 if __name__ == "__main__":
     game = Game()
