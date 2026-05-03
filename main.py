@@ -182,11 +182,11 @@ class Game:
         self.player.velocity.y += GRAVITY.y * dt
             
         if self.player.is_on_floor:
-            # Reset vertical velocity if moving downwards into the floor
+            # Only reset downward velocity if we are actually touching the floor
             if self.player.velocity.y > 0:
                 self.player.velocity.y = 0
                 
-            # Jump logic
+            # Jump logic: Only allow if on floor
             if kn.key.is_just_pressed(kn.K_SPACE):
                 self.player.velocity.y = JUMP_FORCE
         
